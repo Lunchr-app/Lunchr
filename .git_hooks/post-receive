@@ -1,0 +1,98 @@
+#!/usr/intel/bin/perl5.14.1
+
+use warnings;
+use strict;
+
+use Cwd qw(getcwd);
+use YAML::XS qw(Load Dump);
+
+my $subscriptions = get_subscriptions();
+my %files_changed = get_files_changed();
+
+# notify where appropriate
+notify($subscriptions, %files_changed);
+
+
+# notify all subscribers if files changed
+sub notify {
+    my ($subscribers_hashref, %files) = @_;
+
+    # keep a hash of subscriber to files changed to then 2nd pass do the notification.
+    #  need to do it this way so that we can allow directories in the config file
+    my %notify = ();
+
+    foreach my $c_file (keys %files) {
+        foreach my $subscriber (keys %{$subscribers_hashref}) {
+            foreach my $s_file (@{$subscribers_hashref->{$subscriber}}) {
+                if($c_file =~ /$s_file/) {
+                    push @{$notify{$subscriber}}, $c_file;
+                }
+            }
+        }
+    }
+
+    # notify each that had files changed they are watching
+    foreach my $subscriber (keys %notify) {
+        notify_user($subscriber, $notify{$subscriber});
+    }
+}
+
+# send individual emails to watchers
+sub notify_user {
+    my ($user, $changed_files_ref) = @_;
+
+    my $repo = getcwd();
+    $repo =~ s#.*/##img;
+
+    open my $mail, "|/usr/sbin/sendmail -t" or die "Cannot run sendmail -- $!\n";
+    print $mail "To: $user\n";
+    print $mail "Subject: repo change notification for $repo\n\n";
+    print $mail "The following files were just pushed to the central repo ($repo):\n\n";
+    foreach my $file (@{$changed_files_ref}) {
+        print $mail "$file\n";
+    }
+    close $mail;
+}
+
+# get the subscriptions from the <repo>/config/change_notifications.yaml
+sub get_subscriptions {
+    chomp(my $yaml_config = `git show HEAD:config/change_notifications.yaml`);
+
+    my $subscription_ref = Load($yaml_config);
+
+    return $subscription_ref;
+}
+
+# STDIN will be sent something like this:
+# 5c140b7b1eb10676684fb14c4a3cc58eac2b8f7d 9ca6f307ef1363eab033607dd61480a172683652 refs/heads/master
+sub get_files_changed {
+    chomp(my $output = <STDIN>);
+
+    my ($old_sha, $new_sha, $refs) = split(/\s+/, $output);
+
+    my %files = ();
+
+    chomp(my $diff_output = `git diff --name-only $old_sha..$new_sha`);
+    if($?) { 
+        notify_failure("git diff --name-only $old_sha..$new_sha");
+    } else {
+        foreach my $line (split(/\n/, $diff_output)) {
+            $files{$line} = 1;
+        }
+    }
+
+    return %files;
+}
+
+
+sub notify_failure {
+    my ($command) = @_;
+
+    open my $mail, "|/usr/sbin/sendmail -t" or die "Cannot run sendmail -- $!\n";
+    print $mail "To: joshua.k.carroll\@intel.com\n";
+    print $mail "Subject: post-receive hook FAILED\n\n";
+    print $mail "Failed to run: $command\n";
+    close $mail;
+
+}
+
