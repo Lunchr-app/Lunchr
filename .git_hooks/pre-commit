@@ -13,12 +13,3 @@ committing."
     exit 2
 fi
 
-/p/nvm/env/nde_root/flows/intcDig/rev0/bin/git_precommit.pl
-if [ $? -ne 0 ]; then
-    echo "pre-commit checks failed. Please fix these and try again."
-    exit 1
-else
-    exit 0
-fi
-
-
