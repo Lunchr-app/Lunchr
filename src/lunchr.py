@@ -1,4 +1,3 @@
-#!/p/nvm/env/commontools/bin/python3
 # -*- coding: utf-8 -*-
 import random as rand
 
