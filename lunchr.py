@@ -7,7 +7,7 @@ import sys
 date = datetime.datetime.today()
 day = date.strftime('%A')
 
-places = ["Cafe", "Pho ABC", "BJs", "Johnny Rockets", "Fire Rock", "Buckhorn", "Thai Paradise", "Land Ocean", "River Thai", "Pho M", "Mongolian BBQ", "Pieology", "Islands"]
+places = ["Cafe", "Pho ABC", "BJs", "Johnny Rockets", "Fire Rock", "Buckhorn", "Thai Paradise", "Land Ocean", "River Thai", "Pho M", "Mongolian BBQ", "Pieology", "Islands", "Petra", "BurgerIM", "Cheesesteak"]
 
 if(day == "Tuesday"):
 	print("Taco Tuesday @ Salsa's!")
